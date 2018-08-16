@@ -65,7 +65,6 @@ TODO
 @s Script
 
 --- gpgjson.py
-@{Shebang}
 @{Imports}
 @{Variables}
 @{Args Parsing}
@@ -73,11 +72,6 @@ TODO
 @{Split Output}
 @{Output Filename}
 @{Write File}
----
-
-Add the `shebang` at the top of the file.
---- Shebang
-#!/usr/bin/python
 ---
 
 First, the script imports the following libraries:
