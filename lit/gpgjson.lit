@@ -15,12 +15,57 @@ script will parse the output of the `gpg --list-key <fingerprint>` command, whic
 only the key with the matching fingerprint. The resulting file will be named
 `<fingerprint>.json`.
 
+@s JSON Structure
+
+The JSON could look as follows:
+
+--- JSON Example
+[
+    {
+        "pub0": {
+            "alg": "rsa4096",
+            "cdate": "2016-12-24",
+            "flags": "SC",
+            "exdate": "2018-03-29",
+            "uid0": {
+                "trust": "expired",
+                "name": "Alice",
+                "email": "<alice@example.com>"
+            }
+        },
+        "sub0": {},
+        "fprint": "ABCDEF0123456789ABCDEF01234567890123456789"
+    },
+    {
+        "pub0": {
+            "alg": "rsa4096",
+            "cdate": "2017-01-01",
+            "flags": "SC",
+            "exdate": "2018-01-01",
+            "uid0": {
+                "trust": "ultimate",
+                "name": "Bob",
+                "email": "<bob@example.com>"
+            }
+        },
+        "sub0": {
+            "alg": "rsa2048",
+            "cdate": "2018-03-26",
+            "flags": "E",
+            "exdate": "2019-03-26"
+        },
+        "fprint": "01234567890123456789ABCDEFABCDEF012345CDEF"
+    }
+]
+---
+
 @s Requirements
 TODO
 
 @s Script
 
 --- gpgjson.py
+@{Shebang}
 @{Imports}
 @{Variables}
 @{Args Parsing}
@@ -28,6 +73,11 @@ TODO
 @{Split Output}
 @{Output Filename}
 @{Write File}
+---
+
+Add the `shebang` at the top of the file.
+--- Shebang
+#!/usr/bin/python
 ---
 
 First, the script imports the following libraries:
