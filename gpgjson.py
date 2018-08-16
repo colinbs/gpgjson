@@ -38,7 +38,7 @@ for line in raw_output_lines:
 
     # Store Key
     if len(line) == 0:
-        if current_key["pub0"]:
+        if current_key["pub" + str(state_index)]:
             state_index += 1
             all_keys.append(current_key)
             next_is_fprint = False
