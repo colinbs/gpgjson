@@ -1,0 +1,219 @@
+@code_type python .py
+@comment_type # %s
+@title GPG-to-JSON
+
+@s Overview
+
+This is a small script that parses the output of the `gpg --list-keys` command and
+converts it to JSON. The JSON is then written to a file.
+
+If the script is run without parameters, the above mentioned `gpg --list-keys` command
+will be parsed. In this case the resulting filename will be `all_keys.json`.
+
+It is also possible to pass the *fingerprint* of a GPG key to the script. In this case the
+script will parse the output of the `gpg --list-key <fingerprint>` command, which prints
+only the key with the matching fingerprint. The resulting file will be named
+`<fingerprint>.json`.
+
+@s Requirements
+TODO
+
+@s Script
+
+--- gpgjson.py
+@{Imports}
+@{Variables}
+@{Args Parsing}
+@{Execute Command}
+@{Split Output}
+@{Output Filename}
+@{Write File}
+---
+
+First, the script imports the following libraries:
+* `os` for running the GPG commands
+* `sys` for parsing the arguments
+* `re` for parsing the output of the GPG commands
+* `json` for converting the parsed data to JSON
+
+--- Imports
+import os
+import sys
+import re
+import json
+---
+
+@s Variables
+
+Next, these are the used variables. `input_fprint` contains the fingerprint, if the
+user passed one to the script. `command` is the GPG command. It is set according to the
+amount of parameters passed to the function.
+
+--- Variables
+input_fprint = ""
+command = "gpg --list-keys"
+---
+
+The `all_keys` list will contain all parsed keys. `current_key` is the currently processed
+key. By default it receives two dictionaries.
+
+--- Variables +=
+all_keys = list()
+
+current_key = dict()
+current_key["pub0"] = dict()
+current_key["sub0"] = dict()
+---
+
+The rest of the variables are control variables that are used during the parsing process.
+
+--- Variables +=
+next_is_fprint = False
+curr_state = "pub"
+index = 0
+state_index = 0
+---
+
+@s Argument Parsing
+
+After the initialization, the main script begins. First, process the arguments that were
+passed to the function (if any). If an argument was passed, `input_fprint` is set to the
+passed key and `command` will be set to the appropriate command to print a single key.
+
+--- Args Parsing
+if len(sys.argv) > 1:
+    input_fprint = sys.argv[1]
+    command = "gpg --list-key "
+---
+
+Then, the command is executed and the string output is stored.
+
+--- Execute Command
+raw_output = os.popen(command + input_fprint).read()
+---
+
+Since the output is still a single string, it is split at new lines. Each line can now be
+processed more conveniently. 
+
+--- Split Output
+raw_output_lines = raw_output.split('\n')
+
+for line in raw_output_lines:
+    @{Main Loop}
+---
+
+@s The Main Loop
+
+In the main loop, each line is parsed one after another.
+
+--- Main Loop
+@{Prepare Line}
+@{Store Key}
+@{Header Lines}
+---
+
+First, the line is cleaned up. Special characters and spaces are removed.
+
+--- Prepare Line
+line = list(filter(None, line.split(' ')))
+line = list(map(lambda l: re.sub(r"[\[\]]", "", l), line))
+line = list(filter(lambda l: l, line))
+---
+
+There are some special header lines that are ignored.
+
+--- Header Lines
+if '/' in line[0] or '-' in line[0]:
+    continue
+else:
+    @{Parse Pub}
+    @{Parse Uid}
+    @{Parse Sub}
+    @{Parse Fingerprint}
+---
+
+At the start of each line there is an indicator that tells, which values will follow. The
+*pub* string indicates that there will follow general information about the key. These
+are:
+* `algorithm`
+* `creation date`
+* `flags`
+* `expiration date`
+
+After this line the fingerprint follows, so `next_is_fprint` is set to `True`.
+
+--- Parse Pub
+if line[0] == "pub":
+    curr_state = "pub" + str(state_index)
+    current_key[curr_state]["alg"] = line[1]
+    current_key[curr_state]["cdate"] = line[2]
+    current_key[curr_state]["flags"] = line[3]
+    current_key[curr_state]["exdate"] = line[5]
+    next_is_fprint = True
+    index = 0
+---
+
+The same parsing will occur if the line begins with `sub`.
+
+--- Parse Sub
+elif line[0] == "sub":
+    curr_state = "sub" + str(state_index)
+    current_key[curr_state]["alg"] = line[1]
+    current_key[curr_state]["cdate"] = line[2]
+    current_key[curr_state]["flags"] = line[3]
+    current_key[curr_state]["exdate"] = line[5]
+    index = 0
+---
+
+After a `pub` or `sub` line follows one or more `uid` lines. These lines contain
+information more information about the owner of the key:
+* `trust`
+* `name`
+* `email`
+
+--- Parse Uid
+elif line[0] == "uid":
+    current_key[curr_state]["uid" + str(index)] = dict()
+    current_key[curr_state]["uid" + str(index)]["trust"] = line[1]
+    current_key[curr_state]["uid" + str(index)]["name"] = ' '.join(line[2:-1])
+    current_key[curr_state]["uid" + str(index)]["email"] = line[-1]
+    index += 1
+---
+
+As mentioned before, after the `pub` line comes the line that contains the fingerprint.
+
+--- Parse Fingerprint
+elif next_is_fprint:
+    current_key["fprint"] = line[0]
+    next_is_fprint = False
+---
+
+If the length of the line is 0 (a blank line), the key is finished and a new one starts.
+Store the `current_key` in `all_keys` and reset the control variables.
+
+--- Store Key
+if len(line) == 0:
+    if current_key["pub0"]:
+        all_keys.append(current_key)
+        next_is_fprint = False
+        current_key = dict()
+        current_key["pub0"] = dict()
+        current_key["sub0"] = dict()
+    continue
+---
+
+After all lines are processed, the filename is determined according to the input:
+
+--- Output Filename
+if command == "gpg --list-keys":
+    filename = "all_keys.json"
+if command == "gpg --list-key ":
+    filename = input_fprint + ".json"
+---
+
+With this settled, the output file is writtern as JSON.
+
+--- Write File
+with open(filename, 'w') as outfile:
+    json.dump(all_keys, outfile)
+---
