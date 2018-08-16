@@ -52,7 +52,7 @@ Example output of an *all_keys.json* file:
         "fprint": "ABCDEF0123456789ABCDEF01234567890123456789"
     },
     {
-        "pub0": {
+        "pub1": {
             "alg": "rsa4096",
             "cdate": "2017-01-01",
             "flags": "SC",
@@ -63,7 +63,7 @@ Example output of an *all_keys.json* file:
                 "email": "<bob@example.com>"
             }
         },
-        "sub0": {
+        "sub1": {
             "alg": "rsa2048",
             "cdate": "2018-03-26",
             "flags": "E",
