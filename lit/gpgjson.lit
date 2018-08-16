@@ -37,7 +37,7 @@ The JSON could look as follows:
         "fprint": "ABCDEF0123456789ABCDEF01234567890123456789"
     },
     {
-        "pub0": {
+        "pub1": {
             "alg": "rsa4096",
             "cdate": "2017-01-01",
             "flags": "SC",
@@ -48,7 +48,7 @@ The JSON could look as follows:
                 "email": "<bob@example.com>"
             }
         },
-        "sub0": {
+        "sub1": {
             "alg": "rsa2048",
             "cdate": "2018-03-26",
             "flags": "E",
@@ -238,11 +238,12 @@ Store the `current_key` in `all_keys` and reset the control variables.
 --- Store Key
 if len(line) == 0:
     if current_key["pub0"]:
+        state_index += 1
         all_keys.append(current_key)
         next_is_fprint = False
         current_key = dict()
-        current_key["pub0"] = dict()
-        current_key["sub0"] = dict()
+        current_key["pub" + str(state_index)] = dict()
+        current_key["sub" + str(state_index)] = dict()
     continue
 ---
 
