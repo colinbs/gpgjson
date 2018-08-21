@@ -1,23 +1,21 @@
 # GPG key to JSON
 
-This script converts the outputs of the `gpg --list-keys` command to JSON.
+This script converts the outputs of the `gpg --list-keys` command to JSON and prints it to the console it into a file.
 
 ## Usage
 
-If you want to convert all keys of the key-ring, run the script without arguments
+If you want to convert all keys of the key-ring, run the script with `-a`
 
 ```bash
-python gpgjson.py
+python gpgjson.py -a
 ```
-
-The output file is called *all_keys.json*.
 
 If you want to only convert a single key, pass the whole fingerprint to the script
 ```bash
 python gpgjson.py ABCDEF0123456789ABCDEF01234567890123456789
 ```
 
-The output file is called *ABCDEF0123456789ABCDEF01234567890123456789.json*.
+If the script is invoked with the `-o <outfile>` option, an output file with the JSON contents is created.
 
 ## Documentation
 
@@ -32,7 +30,7 @@ directory. So use this one in case you don't want to install Literate.
 
 ## Example
 
-Example output of an *all_keys.json* file:
+Example output of the script:
 
 ```json
 [
