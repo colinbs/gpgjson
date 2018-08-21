@@ -5,15 +5,14 @@
 @s Overview
 
 This is a small script that parses the output of the `gpg --list-keys` command and
-converts it to JSON. The JSON is then written to a file.
+converts it to JSON. The JSON is then printed to the console.
 
-If the script is run without parameters, the above mentioned `gpg --list-keys` command
-will be parsed. In this case the resulting filename will be `all_keys.json`.
-
-It is also possible to pass the *fingerprint* of a GPG key to the script. In this case the
+It is also possible to pass one or more *fingerprints* of GPG keys to the script. In this case the
 script will parse the output of the `gpg --list-key <fingerprint>` command, which prints
-only the key with the matching fingerprint. The resulting file will be named
-`<fingerprint>.json`.
+only the key(s) with the matching fingerprint(s).
+
+By passing the `-o <filename>` or `--outfile <filename>` option, the output is written to
+a file named `<filename>`.
 
 @s JSON Structure
 
@@ -70,32 +69,31 @@ TODO
 @{Args Parsing}
 @{Execute Command}
 @{Split Output}
-@{Output Filename}
 @{Write File}
 ---
 
 First, the script imports the following libraries:
-* `os` for running the GPG commands
-* `sys` for parsing the arguments
+* `subprocess` for running the GPG commands
+* `sys` for exiting the script early due to errors
 * `re` for parsing the output of the GPG commands
 * `json` for converting the parsed data to JSON
+* `argparse` for parsing the arguments passed to the script
 
 --- Imports
-import os
+import subprocess
 import sys
 import re
 import json
+import argparse
 ---
 
 @s Variables
 
-Next, these are the used variables. `input_fprint` contains the fingerprint, if the
-user passed one to the script. `command` is the GPG command. It is set according to the
-amount of parameters passed to the function.
+Next, these are the used variables. `raw_output` is the string output of the appropriate
+GPG command.
 
 --- Variables
-input_fprint = ""
-command = "gpg --list-keys"
+raw_output = ""
 ---
 
 The `all_keys` list will contain all parsed keys. `current_key` is the currently processed
@@ -121,19 +119,40 @@ state_index = 0
 @s Argument Parsing
 
 After the initialization, the main script begins. First, process the arguments that were
-passed to the function (if any). If an argument was passed, `input_fprint` is set to the
-passed key and `command` will be set to the appropriate command to print a single key.
+passed to the function.
 
 --- Args Parsing
-if len(sys.argv) > 1:
-    input_fprint = sys.argv[1]
-    command = "gpg --list-key "
+parser = argparse.ArgumentParser()
+
+parser.add_argument("keys", nargs='*',
+                    help="The fingerprints of one or more keys.")
+parser.add_argument("-a", "--all-keys", help="Print all GPG keys.",
+                    action='store_true')
+parser.add_argument("-i", "--indent", help="Indention of the JSON output.",
+                    type=int, default=4)
+parser.add_argument("-o", "--outfile", nargs=1, type=str,
+                    help="The output file where the JSON should be written to.")
+
+args = parser.parse_args()
+
 ---
 
-Then, the command is executed and the string output is stored.
+Then, dependent on the passed parameters, the command is executed and the string output is stored.
 
 --- Execute Command
-raw_output = os.popen(command + input_fprint).read()
+if args.all_keys:
+    process = subprocess.run(args=["gpg", "--list-keys"], capture_output=True)
+    if process.returncode > 0:
+        sys.exit()
+    raw_output = str(process.stdout.decode("utf-8"))
+elif not args.keys:
+    parser.print_help()
+    sys.exit()
+    process = subprocess.run(args=["gpg", "--list-key"] + args.keys, capture_output=True)
+    if process.returncode > 0:
+        print("No fingerprint matched a key!")
+        sys.exit()
+    raw_output = str(process.stdout.decode("utf-8"))
 ---
 
 Since the output is still a single string, it is split at new lines. Each line can now be
@@ -249,16 +268,10 @@ if len(line) == 0:
 
 After all lines are processed, the filename is determined according to the input:
 
---- Output Filename
-if command == "gpg --list-keys":
-    filename = "all_keys.json"
-if command == "gpg --list-key ":
-    filename = input_fprint + ".json"
----
-
-With this settled, the output file is writtern as JSON.
-
 --- Write File
-with open(filename, 'w') as outfile:
-    json.dump(all_keys, outfile)
+if args.outfile:
+    with open(''.join(args.outfile), 'w') as outfile:
+        json.dump(all_keys, outfile, indent=args.indent)
+else:
+    print(json.dumps(all_keys, indent=args.indent))
 ---

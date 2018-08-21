@@ -1,13 +1,13 @@
 # gpgjson.py
 # Imports
-import os
+import subprocess
 import sys
 import re
 import json
+import argparse
 
 # Variables
-input_fprint = ""
-command = "gpg --list-keys"
+raw_output = ""
 all_keys = list()
 
 current_key = dict()
@@ -19,12 +19,34 @@ index = 0
 state_index = 0
 
 # Args Parsing
-if len(sys.argv) > 1:
-    input_fprint = sys.argv[1]
-    command = "gpg --list-key "
+parser = argparse.ArgumentParser()
+
+parser.add_argument("keys", nargs='*',
+                    help="The fingerprints of one or more keys.")
+parser.add_argument("-a", "--all-keys", help="Print all GPG keys.",
+                    action='store_true')
+parser.add_argument("-i", "--indent", help="Indention of the JSON output.",
+                    type=int, default=4)
+parser.add_argument("-o", "--outfile", nargs=1, type=str,
+                    help="The output file where the JSON should be written to.")
+
+args = parser.parse_args()
+
 
 # Execute Command
-raw_output = os.popen(command + input_fprint).read()
+if args.all_keys:
+    process = subprocess.run(args=["gpg", "--list-keys"], capture_output=True)
+    if process.returncode > 0:
+        sys.exit()
+    raw_output = str(process.stdout.decode("utf-8"))
+elif not args.keys:
+    parser.print_help()
+    sys.exit()
+    process = subprocess.run(args=["gpg", "--list-key"] + args.keys, capture_output=True)
+    if process.returncode > 0:
+        print("No fingerprint matched a key!")
+        sys.exit()
+    raw_output = str(process.stdout.decode("utf-8"))
 
 # Split Output
 raw_output_lines = raw_output.split('\n')
@@ -86,14 +108,11 @@ for line in raw_output_lines:
 
 
 
-# Output Filename
-if command == "gpg --list-keys":
-    filename = "all_keys.json"
-if command == "gpg --list-key ":
-    filename = input_fprint + ".json"
-
 # Write File
-with open(filename, 'w') as outfile:
-    json.dump(all_keys, outfile)
+if args.outfile:
+    with open(''.join(args.outfile), 'w') as outfile:
+        json.dump(all_keys, outfile, indent=args.indent)
+else:
+    print(json.dumps(all_keys, indent=args.indent))
 
 
