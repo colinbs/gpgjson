@@ -134,7 +134,6 @@ parser.add_argument("-o", "--outfile", nargs=1, type=str,
                     help="The output file where the JSON should be written to.")
 
 args = parser.parse_args()
-
 ---
 
 Then, dependent on the passed parameters, the command is executed and the string output is stored.
@@ -191,15 +190,14 @@ There are some special header lines that are ignored.
 if '/' in line[0] or '-' in line[0]:
     continue
 else:
-    @{Parse Pub}
+    @{Parse Pub and Sub}
     @{Parse Uid}
-    @{Parse Sub}
     @{Parse Fingerprint}
 ---
 
-At the start of each line there is an indicator that tells, which values will follow. The
-*pub* string indicates that there will follow general information about the key. These
-are:
+At the start of each line there is an indicator that tells, which values will
+follow. The `pub` and `sub` strings indicates that there will follow general
+information about the key. These are:
 * `algorithm`
 * `creation date`
 * `flags`
@@ -207,26 +205,14 @@ are:
 
 After this line the fingerprint follows, so `next_is_fprint` is set to `True`.
 
---- Parse Pub
-if line[0] == "pub":
-    curr_state = "pub" + str(state_index)
+--- Parse Pub and Sub
+if line[0] == "pub" or line[0] == "sub":
+    curr_state = line[0] + str(state_index)
     current_key[curr_state]["alg"] = line[1]
     current_key[curr_state]["cdate"] = line[2]
     current_key[curr_state]["flags"] = line[3]
     current_key[curr_state]["exdate"] = line[5]
-    next_is_fprint = True
-    index = 0
----
-
-The same parsing will occur if the line begins with `sub`.
-
---- Parse Sub
-elif line[0] == "sub":
-    curr_state = "sub" + str(state_index)
-    current_key[curr_state]["alg"] = line[1]
-    current_key[curr_state]["cdate"] = line[2]
-    current_key[curr_state]["flags"] = line[3]
-    current_key[curr_state]["exdate"] = line[5]
+    next_is_fprint = True if line[0] == "pub" else False
     index = 0
 ---
 

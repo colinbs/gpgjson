@@ -32,21 +32,22 @@ parser.add_argument("-o", "--outfile", nargs=1, type=str,
 
 args = parser.parse_args()
 
-
 # Execute Command
 if args.all_keys:
     process = subprocess.run(args=["gpg", "--list-keys"], capture_output=True)
     if process.returncode > 0:
+        print("No fingerprints found!")
         sys.exit()
     raw_output = str(process.stdout.decode("utf-8"))
-elif not args.keys:
-    parser.print_help()
-    sys.exit()
+elif args.keys:
     process = subprocess.run(args=["gpg", "--list-key"] + args.keys, capture_output=True)
     if process.returncode > 0:
         print("No fingerprint matched a key!")
         sys.exit()
     raw_output = str(process.stdout.decode("utf-8"))
+else:
+    parser.print_help()
+    sys.exit()
 
 # Split Output
 raw_output_lines = raw_output.split('\n')
@@ -73,14 +74,14 @@ for line in raw_output_lines:
     if '/' in line[0] or '-' in line[0]:
         continue
     else:
-        # Parse Pub
-        if line[0] == "pub":
-            curr_state = "pub" + str(state_index)
+        # Parse Pub and Sub
+        if line[0] == "pub" or line[0] == "sub":
+            curr_state = line[0] + str(state_index)
             current_key[curr_state]["alg"] = line[1]
             current_key[curr_state]["cdate"] = line[2]
             current_key[curr_state]["flags"] = line[3]
             current_key[curr_state]["exdate"] = line[5]
-            next_is_fprint = True
+            next_is_fprint = True if line[0] == "pub" else False
             index = 0
 
         # Parse Uid
@@ -90,15 +91,6 @@ for line in raw_output_lines:
             current_key[curr_state]["uid" + str(index)]["name"] = ' '.join(line[2:-1])
             current_key[curr_state]["uid" + str(index)]["email"] = line[-1]
             index += 1
-
-        # Parse Sub
-        elif line[0] == "sub":
-            curr_state = "sub" + str(state_index)
-            current_key[curr_state]["alg"] = line[1]
-            current_key[curr_state]["cdate"] = line[2]
-            current_key[curr_state]["flags"] = line[3]
-            current_key[curr_state]["exdate"] = line[5]
-            index = 0
 
         # Parse Fingerprint
         elif next_is_fprint:
