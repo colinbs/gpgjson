@@ -143,16 +143,18 @@ Then, dependent on the passed parameters, the command is executed and the string
 if args.all_keys:
     process = subprocess.run(args=["gpg", "--list-keys"], capture_output=True)
     if process.returncode > 0:
+        print("No fingerprints found!")
         sys.exit()
     raw_output = str(process.stdout.decode("utf-8"))
-elif not args.keys:
-    parser.print_help()
-    sys.exit()
+elif args.keys:
     process = subprocess.run(args=["gpg", "--list-key"] + args.keys, capture_output=True)
     if process.returncode > 0:
         print("No fingerprint matched a key!")
         sys.exit()
     raw_output = str(process.stdout.decode("utf-8"))
+else:
+    parser.print_help()
+    sys.exit()
 ---
 
 Since the output is still a single string, it is split at new lines. Each line can now be
