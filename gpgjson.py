@@ -29,12 +29,20 @@ parser.add_argument("-i", "--indent", help="Indention of the JSON output.",
                     type=int, default=4)
 parser.add_argument("-o", "--outfile", nargs=1, type=str,
                     help="The output file where the JSON should be written to.")
+parser.add_argument("-c", "--command", nargs=1, type=str,
+                    help="The command that should be executed to list the GPG keys.")
 
 args = parser.parse_args()
 
 # Execute Command
 if args.all_keys:
     process = subprocess.run(args=["gpg", "--list-keys"], capture_output=True)
+    if process.returncode > 0:
+        print("No fingerprints found!")
+        sys.exit()
+    raw_output = str(process.stdout.decode("utf-8"))
+elif args.command:
+    process = subprocess.run(args=args.command[0].split(), capture_output=True)
     if process.returncode > 0:
         print("No fingerprints found!")
         sys.exit()
@@ -80,7 +88,7 @@ for line in raw_output_lines:
             current_key[curr_state]["alg"] = line[1]
             current_key[curr_state]["cdate"] = line[2]
             current_key[curr_state]["flags"] = line[3]
-            current_key[curr_state]["exdate"] = line[5]
+            current_key[curr_state]["exdate"] = line[5] if len(line) >= 5 else ""
             next_is_fprint = True if line[0] == "pub" else False
             index = 0
 
